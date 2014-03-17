@@ -5,7 +5,7 @@ Utils.cs singletone class for some Unity missing-out-of-the-box features.
 
 Current features:
 -----------------
-- SafeInvoke based on Unity Coroutines. You can use it to schelude functions to run and make it Time.timescale-dependent or not like the following:
+- SafeInvoke based on Unity Coroutines. You can use it to schelude functions to run:
 ```
 Utils.Instance.SafeInvoke(string id, System.Action act, float t, bool timescaleDependent);
 ```
