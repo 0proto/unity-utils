@@ -18,7 +18,7 @@ public class Utils : MonoBehaviour {
 	public static Utils Instance {
 		get {
 			if (instance == null) {
-				instance = GameObject.FindObjectOfType(typeof(Utils)) as Utils;
+				instance = GameObject.FindObjectOfType<Utils>();
 				if (instance!=null)
 					uObject = instance.gameObject;
 			}
@@ -30,27 +30,37 @@ public class Utils : MonoBehaviour {
 		}
 	}
 
-	public void SafeInvoke(string id, System.Action act, float t, bool timeScaleDependant) {
-		allInvokes.Add(id,true);
-		StartCoroutine(coInvoke(id,act,t,timeScaleDependant));
-		if (debugMessages)
-			Debug.Log(timeScaleDependant?"Timescaled":"Not timescaled" + " invoke "+id+" was scheduled to run after "+t+" sec.");
+	public void SafeInvoke(string id, System.Action act, float t, bool timescaleDependent) {
+		if (!allInvokes.ContainsKey(id)) {
+			allInvokes.Add(id,true);
+			StartCoroutine(CoInvoke(id,act,t,timescaleDependent));
+			if (debugMessages) {
+				var logmsg = string.Format("{0} invoke {1} was scheduled to run after {2} sec.",
+				                           timescaleDependent?"Timescaled ":"Not timescaled ",
+				                           id,t);
+				Debug.Log(logmsg);
+			}
+		} else {
+			Debug.Log("Invoke with same id was already scheduled! Cancelling this one.");
+		}
 	}
 
 	public void SafeInvoke(System.Action act, float t, bool timeScaleDependant) {
-		StartCoroutine(coInvoke(act,t,timeScaleDependant));
+		StartCoroutine(CoInvoke(act,t,timeScaleDependant));
 	}
 
 	public void CancelSafeInvoke(string id) {
-		allInvokes[id]=false;
-		if (debugMessages)
-			Debug.Log("Invoke "+id+" was cancelled");
+		if (allInvokes.ContainsKey(id) && allInvokes[id]) {
+			allInvokes[id]=false;
+			if (debugMessages)
+				Debug.Log(string.Format("Invoke {0} was cancelled",id));
+		}
 	}
 
-	IEnumerator coInvoke(System.Action act, float t, bool timeScaleDependant) {
+	IEnumerator CoInvoke(System.Action act, float t, bool timeScaleDependant) {
 		if (!timeScaleDependant) {
-			float start = Time.realtimeSinceStartup;
-			while (Time.realtimeSinceStartup < start + t)
+			float delay = Time.realtimeSinceStartup + t;
+			while (Time.realtimeSinceStartup < delay)
 				yield return null;
 			act();
 		} else {
@@ -59,21 +69,19 @@ public class Utils : MonoBehaviour {
 		}
 	}
 
-	IEnumerator coInvoke(string id, System.Action act, float t, bool timeScaleDependant) {
-			if (!timeScaleDependant) {
-				float start = Time.realtimeSinceStartup;
-				while (Time.realtimeSinceStartup < start + t)
+	IEnumerator CoInvoke(string id, System.Action act, float t, bool timescaleDependent) {
+			if (!timescaleDependent) {
+				float delay = Time.realtimeSinceStartup + t;
+				while (Time.realtimeSinceStartup < delay)
 					yield return null;
 				if (allInvokes[id])
 					act();
-				else
-					allInvokes.Remove(id);
+				allInvokes.Remove(id);
 			} else {
 				yield return new WaitForSeconds(t);
 				if (allInvokes[id])
 					act();
-				else
-					allInvokes.Remove(id);
+				allInvokes.Remove(id);
 			}
 	}
 }
